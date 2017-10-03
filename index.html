@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Main</title>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+</head>
+<style type="text/css">
+p{
+	font-size: 0.8em;
+}
+.vslink {
+	visibility: hidden!important;
+}
+</style>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-6">
+				<iframe id="vs_iframe" src="https://www.viewstl.com/?embedded&shading=smooth&clean=yes&noborder=yes&edges=yes" style="border:0;margin:0;width:100%;height:500px;"></iframe>
+			</div>
+			<div class="col-md-6">
+				<div class="info_box">
+					<p id="info_Model">Model:</p>
+					<p id="info_Volume">Volume:</p>
+					<p id="info_Color">Color:</p>
+					<p id="info_x">x:</p>
+					<p id="info_y">y:</p>
+					<p id="info_z">z:</p>
+					<p id="info_triangles">triangles:</p>
+					<p id="info_area">area:</p>
+					<p> <span id="info_cost">Total Cost:</span> <b>tl</b></p>
+				</div>
+				
+				<form class="user-options">
+					<div class="form-group">
+						<label for="fillSelect">Select Fill:</label>
+						<select class="form-control" id="fillSelect">
+							<option>100</option>
+							<option>80</option>
+							<option>60</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="materialSelect">Select Material:</label>
+						<select class="form-control" id="materialSelect">
+							<option>Excellent</option>
+							<option>Good</option>
+							<option>Normal</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="colorSelect">Select Color:</label>
+						<select class="form-control" id="colorSelect">
+							<option>White</option>
+							<option>Black</option>
+							<option>Red</option>
+							<option>Blue</option>
+							<option>Green</option>
+							<option>Yellow</option>
+						</select>
+					</div>
+					<!-- <button type="submit" class="btn btn-primary" id="form-btn">Submit</button> -->
+				</form>
+			</div>
+
+
+		</div>
+	</div>
+</body>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+<!-- Latest compiled and minified CSS -->
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
+-->
+<!-- Latest compiled and minified JavaScript -->
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script> -->
+
+<script type="text/javascript">
+	$( document ).ready(function() {
+		$('.vslink').remove();
+		console.log( "ready!" );
+	});
+
+	document.getElementById('vs_iframe').onload=function()
+	{	
+		//... your code here ...
+		var info = document.getElementById('vs_iframe').contentWindow.postMessage({msg_type:'get_info'}, '*');
+		$('.vslink').remove();
+	}
+	var public_vol;
+	window.onmessage = function(e)
+	{
+		if ((e.origin=="https://www.viewstl.com")&&(e.data.msg_type))
+		{
+			if (e.data.msg_type=='info')
+			{
+				// alert("Model filename: "+e.data.filename);
+				// alert("Volume: "+e.data.volume);
+				// alert("Color: "+e.data.color);
+				// alert("x: "+e.data.x);
+				// alert("y: "+e.data.y);
+				// alert("z: "+e.data.z);
+				// alert("triangles: "+e.data.triangles);
+				// alert("area: "+e.data.area);				
+				public_vol = e.data.volume;
+				$('#info_Model').text("Model filename: "+e.data.filename);
+				$('#info_Volume').text("Volume: "+e.data.volume);
+				$('#info_Color').text("Color: "+e.data.color);
+				$('#info_x').text("x: "+e.data.x);
+				$('#info_y').text("y: "+e.data.y);
+				$('#info_z').text("z: "+e.data.z);
+				$('#info_triangles').text("triangles: "+e.data.triangles);
+				$('#info_area').text("area: "+e.data.area);
+				update_data();
+			}
+		}
+	};
+
+	$('form.user-options :input').change(function(){
+		// $('#log').prepend('<p>Form changed</p>')
+		// alert('Form Changed');
+		update_data();
+	});
+
+	function update_data() {
+		var color = $('#colorSelect').val();
+		var mat = $('#materialSelect').val();
+		var fill = $('#fillSelect').val();
+		var vol = $('#fillSelect').val();
+		// alert(color + mat + fill);
+		set_stl_color(color);
+		set_stl_shading(mat,fill);
+		var tot_cost = calc_cost(public_vol,mat,fill);
+
+		$('#info_cost').text('Total Cost: ' + tot_cost);
+	}
+
+	$('#form-btn').on('click', function(event) {
+		event.preventDefault();
+		// alert("Btn Clicked!!!!");
+	});
+
+	function set_stl_color(color) {
+		document.getElementById('vs_iframe').contentWindow.postMessage({msg_type:'set_color', value: color}, '*');
+	}
+
+	function set_stl_shading(material,fill) {
+		var shading = 'flat';
+		// if(material=="Excellent"){
+		// 	shading = smooth;
+		// }
+		if (fill == '80' || fill == '60') {
+			shading='wireframe';
+			// alert('wireframe');
+		} else if (material == 'Excellent'){
+			shading = 'flat';
+			// alert('flat');
+		} else {
+			shading = 'smooth';
+			// alert('smooth');
+		}
+
+
+		document.getElementById('vs_iframe').contentWindow.postMessage({msg_type:'set_shading', type:shading}, '*');
+	}
+
+	function calc_cost(vol,material,fill) {
+		mat = 1;
+		if (material == 'Excellent'){
+			mat = 3;
+		} else if (material == 'Good'){
+			mat = 2;
+		}
+		return (vol * fill * mat / 100)/100;
+	}
+</script>
+</html>
